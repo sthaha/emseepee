@@ -16,8 +16,8 @@ from fastmcp.utilities.tests import run_server_in_process
 from emseepee.main import mcp
 
 
-def run_math_server(host: str, port: int, **kwargs) -> None:
-    """Run the math MCP server for testing."""
+def run_gmail_server(host: str, port: int, **kwargs) -> None:
+    """Run the Gmail MCP server for testing."""
     transport = kwargs.get("transport", "http")
 
     if transport == "http":
@@ -31,14 +31,14 @@ def run_math_server(host: str, port: int, **kwargs) -> None:
 @pytest.fixture()
 async def http_server() -> AsyncGenerator[str, None]:
     """Start HTTP server and return URL."""
-    with run_server_in_process(run_math_server, transport="http") as url:
+    with run_server_in_process(run_gmail_server, transport="http") as url:
         yield f"{url}/mcp"
 
 
 @pytest.fixture()
 async def sse_server() -> AsyncGenerator[str, None]:
     """Start SSE server and return URL."""
-    with run_server_in_process(run_math_server, transport="sse") as url:
+    with run_server_in_process(run_gmail_server, transport="sse") as url:
         yield f"{url}/mcp"
 
 

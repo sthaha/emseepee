@@ -35,7 +35,7 @@ Welcome to the Math MCP Server developer documentation. This directory contains 
 ## Quick Links
 
 - [Main README](../../README.md) - User-facing documentation
-- [Source Code](../../src/math_mcp/) - Project source code
+- [Source Code](../../src/emseepee/) - Project source code
 - [Tests](../../tests/) - Test suite
 - [Project Configuration](../../pyproject.toml) - Dependencies and build config
 

@@ -5,6 +5,8 @@ productivity tools including Gmail integration and more. The servers support bot
 and HTTP transports with multi-mailbox functionality, advanced configuration options,
 and comprehensive productivity tools.
 
+> **🚀 First time here?** Jump to the [Getting Started](#-getting-started) section or go directly to the [Complete User Guide](docs/user/README.md) for full setup instructions.
+
 ## ⚠️ Personal Project Disclaimer
 
 This project was developed for **personal use and experimentation**. It is provided
@@ -57,7 +59,29 @@ See: <https://github.com/theposch/gmail-mcp>
 - **⚡ Performance Optimized**: Concurrent processing, API batching, and persistent caching
 - **🧪 Testing**: Python unit tests and bash integration tests
 
+## 🚀 Getting Started
+
+**New to Gmail MCP Server?** Start with our comprehensive setup guide:
+
+### 📖 [Complete User Guide](docs/user/README.md)
+
+The user guide walks you through:
+
+1. **[Google Cloud Setup](docs/user/README.md#1-google-cloud-setup)** - Creating credentials and enabling Gmail API
+2. **[Server Setup](docs/user/README.md#2-server-setup)** - Configuration files and mailbox management
+3. **[Multi-Mailbox Analysis](docs/user/README.md#multi-mailbox-email-analysis)** - Example prompts for LLM integration
+4. **[Troubleshooting](docs/user/README.md#troubleshooting)** - Common issues and solutions
+
+### 👨‍💻 [Developer Documentation](docs/developer/README.md)
+
+For developers wanting to contribute or extend the server:
+
+- **[Getting Started Guide](docs/developer/getting-started.md)** - Development setup and workflow
+- **[Architecture Overview](docs/developer/architecture.md)** - System design and patterns
+
 ## Quick Start
+
+> ⚠️ **Prerequisites Required**: You need Google Cloud credentials before starting. See the [Complete User Guide](docs/user/README.md#1-google-cloud-setup) for full setup instructions including Google Cloud project creation, Gmail API enablement, and OAuth credentials.
 
 ### 1. Installation
 
@@ -69,7 +93,7 @@ uv sync
 uv sync --extra test
 ```
 
-### 2. Setup Configuration (Recommended)
+### 2. Setup Configuration
 
 Create a configuration file to avoid repeating settings:
 
@@ -135,6 +159,8 @@ emseepee gmail serve \
 # - MCP endpoint:   http://localhost:63417/mcp
 # - API docs:       http://localhost:63417/docs
 ```
+
+> 📚 **For detailed setup instructions, troubleshooting, and usage examples**: See the [Complete User Guide](docs/user/README.md)
 
 ## Command Line Interface
 
@@ -374,14 +400,14 @@ The server provides Gmail integration:
 ## Testing
 
 ```bash
-# Run  integration tests (requires server running)
-tests/test_mcp.sh
+# Run Gmail integration tests (requires server running)
+tests/gmail/test_mcp.sh
 
 # Run Python unit tests
 uv run pytest
 
-# Run specific test file
-uv run pytest tests/test_gmail_mcp.py -v
+# Run specific Gmail test file
+uv run pytest tests/gmail/test_gmail_mcp.py -v
 
 # Run config tests
 uv run pytest tests/test_config.py -v
@@ -400,20 +426,6 @@ curl http://localhost:63417/api/health
 ```bash
 curl -X POST http://localhost:63417/api/shutdown
 ```
-
-## Development
-
-For developers looking to contribute or extend the server:
-
-**📚 [Developer Documentation](docs/developer/README.md)**
-
-The developer docs include:
-
-- **[Architecture Overview](docs/developer/architecture.md)** - System design and component interaction
-- **[Getting Started Guide](docs/developer/getting-started.md)** - Setup, testing, and development workflow
-- Project patterns and best practices
-- Adding new tools and features
-- Testing strategies and performance optimization
 
 ## Troubleshooting
 
@@ -451,18 +463,26 @@ ls -la ~/.creds/gmail/mailboxes/
 
 For more troubleshooting help, see the [Developer Getting Started Guide](docs/developer/getting-started.md#troubleshooting).
 
-## User Guide
+## Documentation
 
-For example prompts and usage patterns with LLMs:
+### 📖 [User Guide](docs/user/README.md) - Complete Setup & Usage
 
-**📖 [User Guide](docs/user/README.md)**
+Essential for all users:
 
-The user guide includes:
+- **Google Cloud Setup** - Credentials and Gmail API configuration
+- **Server Configuration** - YAML config files and multi-mailbox setup
+- **LLM Integration Examples** - Ready-to-use prompts for email analysis
+- **Multi-Mailbox Operations** - Advanced usage patterns
+- **Troubleshooting** - Common issues and solutions
 
-- Multi-mailbox email analysis prompts
-- Priority-based email triage examples
-- Technical testing and verification prompts
-- Best practices for LLM integration
+### 👨‍💻 [Developer Documentation](docs/developer/README.md) - Extend & Contribute
+
+For developers and contributors:
+
+- **Getting Started** - Development environment setup
+- **Architecture Guide** - System design and patterns
+- **Adding Tools** - Extend functionality
+- **Testing Strategies** - Unit and integration testing
 
 ## License
 

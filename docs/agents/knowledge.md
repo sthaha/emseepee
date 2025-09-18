@@ -255,7 +255,7 @@ gmail = "gmail.main:main"   # Module path matches src/ structure
 
 ### Module Renaming Process
 
-When renaming modules (e.g., `math_mcp` → `gmail`):
+When renaming modules (e.g., `old_module` → `gmail`):
 
 1. **Rename the directory**: `mv src/old_name src/new_name`
 2. **Update pyproject.toml**:

@@ -4,7 +4,79 @@ This guide provides setup instructions, configuration examples, and LLM prompts 
 
 ## Quick Setup
 
-### 1. Server Setup
+### 1. Google Cloud Setup
+
+Before using the Gmail MCP Server, you need to set up Google Cloud credentials and enable the Gmail API.
+
+#### Create Google Cloud Project
+
+1. **Create a new project**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Click "Select a project" → "New Project"
+   - Enter project name (e.g., "EmSeePee Server")
+   - Click "Create"
+
+2. **Enable Gmail API**:
+   - In your project, go to "APIs & Services" → "Library"
+   - Search for "Gmail API"
+   - Click "Gmail API" → "Enable"
+
+#### Configure OAuth Consent Screen
+
+1. **Set up consent screen**:
+   - Go to "APIs & Services" → "OAuth consent screen"
+   - Select "External" user type → "Create"
+   - Fill required fields:
+     - App name: "Gmail MCP Server"
+     - User support email: your email
+     - Developer contact: your email
+   - Click "Save and Continue"
+
+2. **Add scopes**:
+   - Click "Add or Remove Scopes"
+   - Add these Gmail scopes:
+     - `https://www.googleapis.com/auth/gmail/modify`
+     - `https://www.googleapis.com/auth/gmail.compose`
+     - `https://www.googleapis.com/auth/gmail.send`
+   - Click "Update" → "Save and Continue"
+
+3. **Add test users**:
+   - Click "Add Users"
+   - Add your Gmail address(es) that you want to manage
+   - Click "Save and Continue" → "Back to Dashboard"
+
+#### Create OAuth 2.0 Credentials
+
+1. **Create credentials**:
+   - Go to "APIs & Services" → "Credentials"
+   - Click "Create Credentials" → "OAuth 2.0 Client IDs"
+   - Application type: "Desktop application"
+   - Name: "Gmail MCP Desktop Client"
+   - Click "Create"
+
+2. **Download credentials**:
+   - Click "Download JSON" for your new OAuth 2.0 Client ID
+   - Save the file securely (e.g., `client_secret_*.json`)
+
+#### Store Credentials Securely
+
+```bash
+# Create credentials directory
+mkdir -p ~/.creds/gmail
+
+# Move downloaded credentials file
+mv /path/to/download/client_secret_*.json ~/.creds/gmail/creds.json
+
+# Set appropriate permissions
+chmod 400 ~/.creds/gmail/creds.json
+
+# Create mailboxes directory
+mkdir -p ~/.creds/gmail/mailboxes
+```
+
+**Security Note**: The credentials file contains sensitive information. Keep it secure and never commit it to version control.
+
+### 2. Server Setup
 
 The Gmail MCP Server uses a clean subcommand structure with configuration file support.
 
@@ -23,7 +95,7 @@ vim config.yaml
 ```yaml
 # Gmail MCP Server Configuration
 
-# Required: Path to OAuth 2.0 credentials file
+# Required: Path to OAuth 2.0 credentials file (from Google Cloud Setup)
 creds_file: ~/.creds/gmail/creds.json
 
 # Required: Directory containing mailbox subdirectories
@@ -54,6 +126,21 @@ emseepee gmail add \
   --creds-file ~/.creds/gmail/creds.json \
   --mailbox-dir ~/.creds/gmail/mailboxes/
 ```
+
+**First-Time Authentication Flow:**
+
+When you run the `add` command for the first time:
+
+1. Your browser will open automatically
+2. Sign in to the Gmail account you want to manage
+3. Grant permissions to the Gmail MCP Server
+4. The authorization tokens will be saved to `~/.creds/gmail/mailboxes/personal/tokens.json`
+5. You can now start the server and begin using Gmail tools
+
+If you see "This app isn't verified" during OAuth:
+
+- Click "Advanced" → "Go to Gmail MCP Desktop Client (unsafe)"
+- This is normal for apps in testing mode with Google Cloud
 
 #### Start the Server
 

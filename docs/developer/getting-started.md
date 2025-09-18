@@ -1,6 +1,6 @@
 # Getting Started - Developer Guide
 
-This guide will help you set up your development environment and get the Math MCP Server running locally.
+This guide will help you set up your development environment and get the Gmail MCP Server running locally.
 
 ## Prerequisites
 
@@ -28,7 +28,7 @@ pip install uv
 
 ```bash
 git clone <repository-url>
-cd math-mcp
+cd gmail
 ```
 
 ### 2. Install Dependencies
@@ -47,7 +47,7 @@ This creates a local `.venv` directory with all dependencies installed.
 
 ```bash
 # Check that the tool can be found
-uv run math-mcp --help
+uv run emseepee gmail --help
 
 # Should show CLI options
 ```
@@ -58,23 +58,23 @@ uv run math-mcp --help
 
 ```bash
 # Start the HTTP server (default mode)
-uv run math-mcp
+uv run emseepee gmail serve
 
 # Start with custom port
-uv run math-mcp --port 8080
+uv run emseepee gmail serve --port 8080
 
 # Start with custom address
-uv run math-mcp --addr 0.0.0.0 --port 8080
+uv run emseepee gmail serve --addr 0.0.0.0 --port 8080
 
 # Run in stdio mode (for direct MCP client connections)
-uv run math-mcp --mode stdio
+uv run emseepee gmail serve --mode stdio
 ```
 
 The server will be available at:
 
-- **MCP Endpoint**: `http://localhost:35813/mcp`
-- **Health Check**: `http://localhost:35813/api/health`
-- **API Documentation**: `http://localhost:35813/docs`
+- **MCP Endpoint**: `http://localhost:63417/mcp`
+- **Health Check**: `http://localhost:63417/api/health`
+- **API Documentation**: `http://localhost:63417/docs`
 
 ### Running Tests
 
@@ -82,26 +82,26 @@ The server will be available at:
 
 ```bash
 # Run comprehensive integration tests
-tests/test_mcp.sh
+tests/gmail/test_mcp.sh
 
 # Test with custom port (make sure server is running on that port)
-tests/test_mcp.sh --port 8080
+tests/gmail/test_mcp.sh --port 8080
 
 # Show help
-tests/test_mcp.sh --help
+tests/gmail/test_mcp.sh --help
 ```
 
 #### Python Test Suite
 
 ```bash
 # Run all Python tests
-uv run pytest tests/test_math_mcp.py -v
+uv run pytest tests/gmail/test_gmail_mcp.py -v
 
 # Run specific test class
-uv run pytest tests/test_math_mcp.py::TestMathMCPServer -v
+uv run pytest tests/gmail/test_gmail_mcp.py::TestGmailMCPServer -v
 
 # Run with coverage
-uv run pytest tests/ --cov=math_mcp
+uv run pytest tests/ --cov=emseepee
 
 # Run all tests in tests directory
 uv run pytest tests/
@@ -112,27 +112,27 @@ uv run pytest tests/
 #### Health Check
 
 ```bash
-curl http://localhost:35813/api/health
+curl http://localhost:63417/api/health
 ```
 
 #### MCP Tool Testing
 
 ```bash
 # List available tools
-curl -X POST http://localhost:35813/mcp \
+curl -X POST http://localhost:63417/mcp \
   -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
 
-# Call add_numbers tool
-curl -X POST http://localhost:35813/mcp \
+# Call get_unread_emails tool
+curl -X POST http://localhost:63417/mcp \
   -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"add_numbers","arguments":{"numbers":[1,2,3,4,5]}}}'
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_unread_emails","arguments":{"max_emails":5}}}'
 ```
 
 #### Graceful Shutdown
 
 ```bash
-curl -X POST http://localhost:35813/api/shutdown
+curl -X POST http://localhost:63417/api/shutdown
 ```
 
 ## Development Commands
@@ -169,47 +169,53 @@ uv run mypy src/
 ## Project Structure
 
 ```text
-math-mcp/
-├── src/math_mcp/           # Source code
+gmail/
+├── src/emseepee/           # Source code
 │   ├── __init__.py         # Package initialization
 │   ├── main.py             # CLI and FastAPI server
-│   └── tools.py            # MCP tool implementations
+│   └── gmail/              # Gmail-specific modules
+│       ├── tools.py        # MCP tool implementations
+│       ├── service.py      # Gmail API service
+│       └── manager.py      # Multi-mailbox management
 ├── tests/                  # Test suite
-│   ├── test_math_mcp.py    # Python tests
-│   └── test_mcp.sh         # Bash integration tests
-├── docs/developer/         # Developer documentation
+│   └── gmail/              # Gmail tests
+│       ├── test_gmail_mcp.py  # Python tests
+│       └── test_mcp.sh     # Bash integration tests
+├── docs/                   # Documentation
+│   ├── user/               # User guides
+│   └── developer/          # Developer documentation
 ├── pyproject.toml          # Project configuration
-└── README.md               # User documentation
+└── README.md               # Main documentation
 ```
 
 ## Making Changes
 
 ### 1. Add a New Tool
 
-1. **Implement the tool** in `src/math_mcp/tools.py`:
+1. **Implement the tool** in `src/emseepee/gmail/tools.py`:
 
    ```python
-   def my_new_tool(param: str) -> dict:
-       """Tool description."""
-       return {"result": f"processed {param}"}
+   async def my_new_gmail_tool(mailbox: str = None) -> dict:
+       """Tool description for Gmail functionality."""
+       return {"result": f"processed Gmail request for {mailbox}"}
    ```
 
-2. **Register the tool** in `src/math_mcp/main.py`:
+2. **Register the tool** in `src/emseepee/main.py`:
 
    ```python
-   from .tools import add_numbers, my_new_tool
+   from .gmail.tools import get_unread_emails, my_new_gmail_tool
 
-   mcp.tool()(add_numbers)
-   mcp.tool()(my_new_tool)  # Add this line
+   mcp.tool()(get_unread_emails)
+   mcp.tool()(my_new_gmail_tool)  # Add this line
    ```
 
-3. **Add tests** in `tests/test_math_mcp.py`
+3. **Add tests** in `tests/gmail/test_gmail_mcp.py`
 
 4. **Test your changes**:
 
    ```bash
-   uv run math-mcp  # Start server
-   tests/test_mcp.sh  # Run tests
+   uv run emseepee gmail serve  # Start server
+   tests/gmail/test_mcp.sh  # Run tests
    ```
 
 ### 2. Modify Existing Code
@@ -233,18 +239,18 @@ uv sync --reinstall
 
 ```bash
 # Check if port is in use
-lsof -i :35813
+lsof -i :63417
 
 # Try different port
-uv run math-mcp --port 8080
+uv run emseepee gmail serve --port 8080
 ```
 
 **Tests Failing**:
 
 ```bash
 # Ensure server is running before bash tests
-uv run math-mcp &  # Start in background
-tests/test_mcp.sh  # Run tests
+uv run emseepee gmail serve &  # Start in background
+tests/gmail/test_mcp.sh  # Run tests
 kill %1            # Stop background server
 ```
 
