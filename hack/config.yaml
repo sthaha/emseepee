@@ -1,0 +1,25 @@
+# Gmail MCP Server Configuration
+
+# Required: Path to OAuth 2.0 credentials file
+# Can be absolute or relative to this config file
+creds_file: ~/.creds/gmail/creds.json
+
+# Required: Directory containing mailbox subdirectories
+# Can be absolute or relative to this config file
+mailbox_dir: ~/.creds/gmail/mailboxes/
+
+# MCP Server configuration
+mcp:
+  mode: http            # 'http' or 'stdio'
+
+# HTTP server configuration (only used when mcp.mode = http)
+http:
+  port: 63417          # Server port
+  addr: localhost      # Server address
+
+
+# Optional: Default mailbox to use
+# mailbox: personal
+
+# Optional: Logging level
+# log_level: INFO
