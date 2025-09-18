@@ -134,6 +134,96 @@ def initialize_gmail_service_with_mailbox_dir(
     logger.info(f"Mailbox directory: {mailbox_dir}")
 
 
+async def find_labels_by_name(
+    search_term: str, max_results: int = 5
+) -> List[Dict[str, Any]]:
+    """
+    Find Gmail labels by name using fuzzy matching.
+
+    This function helps when users refer to labels by approximate names rather than exact matches.
+    It performs case-insensitive partial matching and returns the closest matches.
+
+    Args:
+        search_term: The label name to search for (can be partial or approximate)
+        max_results: Maximum number of matching labels to return (default: 5)
+
+    Returns:
+        List of label dictionaries with 'id', 'name', and 'match_score' fields,
+        sorted by relevance (highest match score first)
+
+    Examples:
+        # User says "work" → finds ["Work/Projects", "Work/Urgent", "Work"]
+        # User says "important" → finds ["Important", "Work/Important", "!Important"]
+        # User says "proj" → finds ["Projects", "Work/Projects", "Side Projects"]
+    """
+    if _gmail_service is None:
+        raise ValueError("Gmail service not initialized.")
+
+    # Get all available labels
+    all_labels = await _gmail_service.list_labels()
+
+    if isinstance(all_labels, str):
+        # Error occurred
+        logger.error(f"Error retrieving labels: {all_labels}")
+        return []
+
+    search_term_lower = search_term.lower()
+    matches = []
+
+    for label in all_labels:
+        label_name = label.get("name", "")
+        label_name_lower = label_name.lower()
+
+        # Calculate match score based on different criteria
+        match_score = 0
+
+        # Exact match (highest score)
+        if label_name_lower == search_term_lower:
+            match_score = 100
+        # Starts with search term
+        elif label_name_lower.startswith(search_term_lower):
+            match_score = 90
+        # Contains search term
+        elif search_term_lower in label_name_lower:
+            match_score = 70
+        # Search term contains label name (for short labels)
+        elif label_name_lower in search_term_lower and len(label_name) >= 3:
+            match_score = 60
+        # Word boundary matches (e.g., "work" matches "Work/Projects")
+        elif any(
+            word.startswith(search_term_lower) for word in label_name_lower.split("/")
+        ):
+            match_score = 80
+        # Partial word matches
+        elif any(search_term_lower in word for word in label_name_lower.split("/")):
+            match_score = 50
+        else:
+            # Check for character similarity (simple fuzzy matching)
+            common_chars = set(search_term_lower) & set(label_name_lower)
+            if len(common_chars) >= min(3, len(search_term_lower) // 2):
+                match_score = 30
+
+        if match_score > 0:
+            matches.append(
+                {
+                    "id": label.get("id"),
+                    "name": label_name,
+                    "match_score": match_score,
+                    "type": label.get("type", "user"),
+                }
+            )
+
+    # Sort by match score (highest first) and limit results
+    matches.sort(key=lambda x: x["match_score"], reverse=True)
+    top_matches = matches[:max_results]
+
+    logger.info(
+        f"Found {len(top_matches)} label matches for '{search_term}': {[m['name'] for m in top_matches]}"
+    )
+
+    return top_matches
+
+
 # Email Management Tools
 
 
@@ -154,6 +244,25 @@ async def get_unread_emails(
 
     Returns:
         List of email dictionaries with id, subject, sender, date, snippet, labels, and mailbox_id
+
+    IMPORTANT FOR LLMs: This function gets unread emails by default. For additional filtering
+    by labels, use search_emails() instead with queries like:
+
+    Standard Gmail labels (use directly):
+    - "is:unread is:important" for unread important emails
+    - "is:unread is:starred" for unread starred emails
+    - "is:unread category:social" for unread social emails
+
+    For NON-STANDARD/CUSTOM labels (user-created labels), look up exact names first:
+    - find_labels_by_name(): For fuzzy searching when you have approximate label names
+    - list_labels(): To see all available labels
+    - search_by_label(): To find emails by label (supports fuzzy matching)
+
+    Examples:
+    - Basic unread emails: use this function directly
+    - "Unread important emails": use search_emails("is:unread is:important")
+    - "Unread work emails": use find_labels_by_name("work") first to get exact name like
+      "Work/Projects", then search_emails("is:unread label:Work/Projects")
     """
     if _mailbox_manager is None:
         raise ValueError("Mailbox manager not initialized.")
@@ -358,7 +467,27 @@ async def list_drafts() -> List[Dict[str, Any]]:
 
 
 async def list_labels() -> List[Dict[str, Any]]:
-    """List all Gmail labels."""
+    """
+    List all Gmail labels.
+
+    Returns:
+        List of all available labels with their IDs, names, and types
+
+    IMPORTANT FOR LLMs: This function shows all available labels, which is useful for
+    understanding the exact label names. However, when working with labels in other
+    functions (apply_label, search_by_label, remove_label), you don't need to use exact
+    names - those functions support fuzzy matching. You can use approximate or partial
+    label names directly.
+
+    For example, if you see labels like "Work/Projects", "Work/Urgent", "Important",
+    you can later refer to them as:
+    - "work" (will match Work/Projects or Work/Urgent)
+    - "proj" (will match Work/Projects)
+    - "important" (will match Important)
+
+    Use this function when you need to see all available labels or when fuzzy matching
+    doesn't find what the user is looking for.
+    """
     if _gmail_service is None:
         raise ValueError("Gmail service not initialized.")
 
@@ -373,20 +502,130 @@ async def create_label(name: str) -> Dict[str, Any]:
     return await _gmail_service.create_label(name)
 
 
-async def apply_label(email_id: str, label_id: str) -> str:
-    """Apply a label to an email."""
+async def apply_label(email_id: str, label_identifier: str) -> str:
+    """
+    Apply a label to an email.
+
+    Args:
+        email_id: The ID of the email to label
+        label_identifier: Can be either:
+            - Exact label ID (e.g., "Label_123")
+            - Exact label name (e.g., "Work/Projects")
+            - Partial/fuzzy label name (e.g., "work", "proj") - will find closest match
+
+    Returns:
+        Status message about the label application
+
+    IMPORTANT FOR LLMs: When a user refers to a label by name (e.g., "work", "important",
+    "project"), they may not be using the exact label name. This function will automatically
+    search for the closest matching label if the exact name isn't found. You can use
+    approximate or partial label names - the system will find the best match and inform
+    you which label was actually applied.
+
+    Examples of fuzzy matching:
+    - "work" → might match "Work/Projects", "Work/Urgent", or "Work"
+    - "important" → might match "Important", "Work/Important", or "!Important"
+    - "proj" → might match "Projects", "Work/Projects", or "Side Projects"
+
+    If you're unsure about label names, you can use list_labels() first, but it's often
+    faster to just try the approximate name directly.
+    """
     if _gmail_service is None:
         raise ValueError("Gmail service not initialized.")
 
-    return await _gmail_service.apply_label(email_id, label_id)
+    # First, try to use the identifier as-is (could be exact label ID or name)
+    try:
+        result = await _gmail_service.apply_label(email_id, label_identifier)
+        return result
+    except Exception as e:
+        # If direct application fails, try fuzzy label matching
+        logger.info(
+            f"Direct label application failed, trying fuzzy match for '{label_identifier}': {e}"
+        )
+
+        # Find matching labels using fuzzy search
+        matching_labels = await find_labels_by_name(label_identifier, max_results=1)
+
+        if not matching_labels:
+            return f"Error: No labels found matching '{label_identifier}'. Use list_labels() to see available labels."
+
+        best_match = matching_labels[0]
+        best_label_id = best_match["id"]
+        best_label_name = best_match["name"]
+        match_score = best_match["match_score"]
+
+        logger.info(
+            f"Using fuzzy match: '{label_identifier}' → '{best_label_name}' (score: {match_score})"
+        )
+
+        try:
+            result = await _gmail_service.apply_label(email_id, best_label_id)
+            return f"{result} (Auto-matched '{label_identifier}' to label '{best_label_name}')"
+        except Exception as fuzzy_error:
+            return f"Error applying label '{best_label_name}' (ID: {best_label_id}): {fuzzy_error}"
 
 
-async def remove_label(email_id: str, label_id: str) -> str:
-    """Remove a label from an email."""
+async def remove_label(email_id: str, label_identifier: str) -> str:
+    """
+    Remove a label from an email.
+
+    Args:
+        email_id: The ID of the email to remove the label from
+        label_identifier: Can be either:
+            - Exact label ID (e.g., "Label_123")
+            - Exact label name (e.g., "Work/Projects")
+            - Partial/fuzzy label name (e.g., "work", "proj") - will find closest match
+
+    Returns:
+        Status message about the label removal
+
+    IMPORTANT FOR LLMs: When a user refers to a label by name (e.g., "work", "important",
+    "project"), they may not be using the exact label name. This function will automatically
+    search for the closest matching label if the exact name isn't found. You can use
+    approximate or partial label names - the system will find the best match and inform
+    you which label was actually removed.
+
+    Examples of fuzzy matching:
+    - "work" → might match "Work/Projects", "Work/Urgent", or "Work"
+    - "important" → might match "Important", "Work/Important", or "!Important"
+    - "proj" → might match "Projects", "Work/Projects", or "Side Projects"
+
+    If you're unsure about label names, you can use list_labels() first, but it's often
+    faster to just try the approximate name directly.
+    """
     if _gmail_service is None:
         raise ValueError("Gmail service not initialized.")
 
-    return await _gmail_service.remove_label(email_id, label_id)
+    # First, try to use the identifier as-is (could be exact label ID or name)
+    try:
+        result = await _gmail_service.remove_label(email_id, label_identifier)
+        return result
+    except Exception as e:
+        # If direct removal fails, try fuzzy label matching
+        logger.info(
+            f"Direct label removal failed, trying fuzzy match for '{label_identifier}': {e}"
+        )
+
+        # Find matching labels using fuzzy search
+        matching_labels = await find_labels_by_name(label_identifier, max_results=1)
+
+        if not matching_labels:
+            return f"Error: No labels found matching '{label_identifier}'. Use list_labels() to see available labels."
+
+        best_match = matching_labels[0]
+        best_label_id = best_match["id"]
+        best_label_name = best_match["name"]
+        match_score = best_match["match_score"]
+
+        logger.info(
+            f"Using fuzzy match: '{label_identifier}' → '{best_label_name}' (score: {match_score})"
+        )
+
+        try:
+            result = await _gmail_service.remove_label(email_id, best_label_id)
+            return f"{result} (Auto-matched '{label_identifier}' to label '{best_label_name}')"
+        except Exception as fuzzy_error:
+            return f"Error removing label '{best_label_name}' (ID: {best_label_id}): {fuzzy_error}"
 
 
 async def rename_label(label_id: str, new_name: str) -> Dict[str, Any]:
@@ -405,12 +644,77 @@ async def delete_label(label_id: str) -> str:
     return await _gmail_service.delete_label(label_id)
 
 
-async def search_by_label(label_id: str) -> List[Dict[str, Any]]:
-    """Search for emails with a specific label."""
+async def search_by_label(label_identifier: str) -> List[Dict[str, Any]]:
+    """
+    Search for emails with a specific label.
+
+    Args:
+        label_identifier: Can be either:
+            - Exact label ID (e.g., "Label_123")
+            - Exact label name (e.g., "Work/Projects")
+            - Partial/fuzzy label name (e.g., "work", "proj") - will find closest match
+
+    Returns:
+        List of emails with the specified label
+
+    IMPORTANT FOR LLMs: When a user refers to a label by name (e.g., "work", "important",
+    "project"), they may not be using the exact label name. This function will automatically
+    search for the closest matching label if the exact name isn't found. You can use
+    approximate or partial label names - the system will find the best match.
+
+    Examples of fuzzy matching:
+    - "work" → might find emails labeled "Work/Projects", "Work/Urgent", or "Work"
+    - "important" → might find emails labeled "Important", "Work/Important", or "!Important"
+    - "proj" → might find emails labeled "Projects", "Work/Projects", or "Side Projects"
+
+    The function will automatically inform you which label was actually used for the search.
+    If you're unsure about label names, you can use list_labels() first, but it's often
+    faster to just try the approximate name directly.
+    """
     if _gmail_service is None:
         raise ValueError("Gmail service not initialized.")
 
-    return await _gmail_service.search_by_label(label_id)
+    # First, try to use the identifier as-is (could be exact label ID)
+    try:
+        result = await _gmail_service.search_by_label(label_identifier)
+        return result
+    except Exception as e:
+        # If direct search fails, try fuzzy label matching
+        logger.info(
+            f"Direct label search failed, trying fuzzy match for '{label_identifier}': {e}"
+        )
+
+        # Find matching labels using fuzzy search
+        matching_labels = await find_labels_by_name(label_identifier, max_results=1)
+
+        if not matching_labels:
+            logger.error(f"No labels found matching '{label_identifier}'")
+            return []
+
+        best_match = matching_labels[0]
+        best_label_id = best_match["id"]
+        best_label_name = best_match["name"]
+        match_score = best_match["match_score"]
+
+        logger.info(
+            f"Using fuzzy match: '{label_identifier}' → '{best_label_name}' (score: {match_score})"
+        )
+
+        try:
+            result = await _gmail_service.search_by_label(best_label_id)
+
+            # Add a note to the first email result about the label match (if any results)
+            if result and len(result) > 0:
+                logger.info(
+                    f"Found {len(result)} emails with label '{best_label_name}' (auto-matched from '{label_identifier}')"
+                )
+
+            return result
+        except Exception as fuzzy_error:
+            logger.error(
+                f"Error searching emails with label '{best_label_name}' (ID: {best_label_id}): {fuzzy_error}"
+            )
+            return []
 
 
 # Filter Management Tools
@@ -477,12 +781,155 @@ async def delete_filter(filter_id: str) -> str:
 # Search Tools
 
 
-async def search_emails(query: str, max_results: int = 50) -> List[Dict[str, Any]]:
-    """Search emails using Gmail's search syntax."""
-    if _gmail_service is None:
-        raise ValueError("Gmail service not initialized.")
+async def search_emails(
+    query: str, max_results: int = 50, mailboxes: Optional[List[str]] = None
+) -> List[Dict[str, Any]]:
+    """
+    Search emails using Gmail's search syntax across one or more mailboxes.
 
-    return await _gmail_service.search_emails(query, max_results)
+    Args:
+        query: Gmail search query string (e.g., "from:user@example.com subject:important")
+        max_results: Maximum number of results to retrieve (default: 50)
+        mailboxes: List of mailbox IDs to search in. Special values:
+                  - None: Uses current mailbox (default)
+                  - []: Searches ALL available mailboxes
+                  - ["all"]: Searches ALL available mailboxes
+                  - ["foo", "bar"]: Searches specific mailboxes
+                  - "foo": Single mailbox (automatically converted to ["foo"])
+
+    Returns:
+        List of email dictionaries with id, subject, sender, date, snippet, labels, and mailbox_id
+
+    IMPORTANT FOR LLMs: For standard Gmail labels, use them directly in queries:
+    - System labels: "is:unread", "is:important", "is:starred", "in:inbox", "in:sent", "in:drafts"
+    - Categories: "category:primary", "category:social", "category:promotions", "category:updates"
+
+    For NON-STANDARD/CUSTOM labels (user-created labels like "Work", "Projects", etc.),
+    you need to look up exact names first using these tools:
+    - find_labels_by_name(): For fuzzy searching when you have approximate label names
+    - list_labels(): To see all available labels
+    - search_by_label(): Alternative approach that supports fuzzy label matching
+
+    Examples:
+    - Standard labels: "is:unread is:important" (use directly)
+    - Custom labels: If user says "emails with work label", first use find_labels_by_name("work")
+      to find the exact label name like "Work/Projects", then use "label:Work/Projects"
+    - Mixed: "from:boss@company.com label:urgent is:unread" (look up "urgent" if it's custom)
+    """
+    if _mailbox_manager is None:
+        raise ValueError("Mailbox manager not initialized.")
+
+    # Performance tracking
+    start_time = time.time()
+
+    try:
+        # If no mailboxes specified, use current mailbox
+        if mailboxes is None:
+            if _gmail_service is None:
+                raise ValueError("Gmail service not initialized.")
+
+            logger.info(f"Searching emails with query '{query}' in current mailbox")
+
+            result = await _gmail_service.search_emails(query, max_results)
+
+            if isinstance(result, str):
+                # Error occurred
+                logger.error(f"Error searching emails: {result}")
+                return []
+
+            # Add current mailbox_id to each email
+            current_mailbox = _mailbox_manager.current_mailbox_id
+            for email in result:
+                email["mailbox_id"] = current_mailbox
+
+            elapsed = time.time() - start_time
+            logger.info(
+                f"Found {len(result)} emails in current mailbox in {elapsed:.2f}s"
+            )
+            return result
+
+        # Handle "all mailboxes" cases: empty list or ["all"]
+        available_mailboxes = list(_mailbox_manager.mailboxes.keys())
+        if mailboxes == [] or mailboxes == ["all"]:
+            target_mailboxes = available_mailboxes
+            logger.info(
+                f"Searching emails in ALL {len(target_mailboxes)} mailboxes: {target_mailboxes}"
+            )
+        else:
+            target_mailboxes = mailboxes
+            logger.info(f"Searching emails in specific mailboxes: {target_mailboxes}")
+
+        # Validate mailboxes exist
+        valid_mailboxes = []
+        for mailbox_id in target_mailboxes:
+            if mailbox_id not in available_mailboxes:
+                logger.warning(
+                    f"Mailbox '{mailbox_id}' not found. Available: {available_mailboxes}"
+                )
+                continue
+            valid_mailboxes.append(mailbox_id)
+
+        if not valid_mailboxes:
+            logger.warning("No valid mailboxes found")
+            return []
+
+        # Process mailboxes sequentially
+        logger.info(f"Processing {len(valid_mailboxes)} mailboxes sequentially")
+        all_emails = []
+        successful_mailboxes = []
+
+        for mailbox_id in valid_mailboxes:
+            try:
+                service = _mailbox_manager.mailboxes[mailbox_id]
+
+                logger.info(
+                    f"Searching emails in mailbox '{mailbox_id}' with query '{query}'"
+                )
+
+                result = await service.search_emails(query, max_results)
+
+                if isinstance(result, str):
+                    logger.error(
+                        f"Error searching emails in mailbox '{mailbox_id}': {result}"
+                    )
+                    continue
+
+                # Add mailbox_id to each email
+                for email in result:
+                    email["mailbox_id"] = mailbox_id
+
+                all_emails.extend(result)
+                successful_mailboxes.append(mailbox_id)
+                logger.info(f"Found {len(result)} emails in mailbox '{mailbox_id}'")
+
+            except Exception as e:
+                logger.error(f"Failed to search emails in mailbox '{mailbox_id}': {e}")
+                continue
+
+        # Limit total results to max_results
+        if len(all_emails) > max_results:
+            all_emails = all_emails[:max_results]
+
+        elapsed = time.time() - start_time
+        successful_count = len(set(email["mailbox_id"] for email in all_emails))
+
+        if mailboxes == [] or mailboxes == ["all"]:
+            logger.info(
+                f"Found {len(all_emails)} total emails across ALL mailboxes "
+                f"({successful_count}/{len(available_mailboxes)} successful) in {elapsed:.2f}s"
+            )
+        else:
+            logger.info(
+                f"Found {len(all_emails)} total emails across {successful_count} mailboxes "
+                f"in {elapsed:.2f}s"
+            )
+
+        return all_emails
+
+    except Exception as e:
+        elapsed = time.time() - start_time
+        logger.error(f"search_emails failed after {elapsed:.2f}s: {e}")
+        raise
 
 
 # Folder/Organization Tools
