@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🚨 Breaking Changes Policy
+
+**Breaking changes are welcome and encouraged.** This is a personal project with no external users to worry about:
+
+- Feel free to change configuration formats, CLI interfaces, or APIs without backward compatibility
+- Remove deprecated or legacy code paths without hesitation
+- Refactor aggressively to improve code quality and maintainability
+- No need to maintain migration paths or deprecation warnings
+- Focus on clean, modern patterns rather than supporting old approaches
+
+The goal is clean, maintainable code - not backward compatibility.
+
 ## Development Commands
 
 ### CLI Commands
@@ -15,11 +27,17 @@ Create a `config.yaml` file to avoid repeating common settings (see `hack/config
 ```yaml
 # Gmail MCP Server Configuration
 
-# Required: Path to OAuth 2.0 credentials file
-creds_file: ~/.creds/gmail/creds.json
+# Google Cloud credentials configuration
+gcloud:
+  # Required: Path to OAuth 2.0 credentials file
+  # Can be absolute or relative to this config file
+  credential_file: ~/.creds/gmail/creds.json
 
-# Required: Directory containing mailbox subdirectories
-mailbox_dir: ~/.creds/gmail/mailboxes/
+# Gmail configuration
+gmail:
+  # Required: Directory containing mailbox subdirectories
+  # Can be absolute or relative to this config file
+  mailbox_dir: ~/.creds/gmail/mailboxes/
 
 # MCP Server configuration
 mcp:
@@ -44,7 +62,7 @@ emseepee gmail add --name personal --config-file config.yaml
 # Using direct arguments
 emseepee gmail add \
   --name personal \
-  --creds-file ~/.creds/gmail/creds.json \
+  --credential-file ~/.creds/gmail/creds.json \
   --mailbox-dir ~/.creds/gmail/mailboxes/
 
 # Mixing config file with overrides
@@ -69,7 +87,7 @@ emseepee gmail serve \
 
 # Using direct arguments
 emseepee gmail serve \
-  --creds-file ~/.creds/gmail/creds.json \
+  --credential-file ~/.creds/gmail/creds.json \
   --mailbox-dir ~/.creds/gmail/mailboxes/
 
 # Advanced: stdio mode with specific mailbox
@@ -114,7 +132,7 @@ ls -la ~/.creds/gmail/mailboxes/
 
 # Use new structure
 uv run emseepee gmail serve \
-  --creds-file ~/.creds/gmail/creds.json \
+  --credential-file ~/.creds/gmail/creds.json \
   --mailbox-dir ~/.creds/gmail/mailboxes/ \
   --mailbox=personal
 ```
@@ -147,7 +165,7 @@ When starting servers for testing or development:
 ```bash
 # Start server in background for testing
 uv run emseepee gmail serve \
-  --creds-file ~/.creds/gmail/creds.json \
+  --credential-file ~/.creds/gmail/creds.json \
   --mailbox-dir ~/.creds/gmail/mailboxes/ \
   --mailbox=personal \
   --log-level=debug \
@@ -516,7 +534,7 @@ When testing new features that require a running server:
 
 ```bash
 # 1. Start server in background with custom port to avoid conflicts
-uv run emseepee gmail serve --creds-file ~/.creds/gmail/creds.json --mailbox-dir ./tmp/mailboxes/ --mailbox=test --port 8081 &
+uv run emseepee gmail serve --credential-file ~/.creds/gmail/creds.json --mailbox-dir ./tmp/mailboxes/ --mailbox=test --port 8081 &
 GMAIL_PID=$!
 
 # 2. Test your functionality

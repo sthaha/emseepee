@@ -16,7 +16,7 @@ class Gmail:
     """Gmail MCP Server configuration data class."""
 
     # Required settings
-    creds_file: str
+    credential_file: str
     mailbox_dir: str
 
     # MCP settings
@@ -89,17 +89,16 @@ class Loader:
         """Process configuration by expanding paths and flattening nested structure."""
         processed = config.copy()
 
-        # Convert relative paths to absolute paths
-        for path_key in ["creds_file", "mailbox_dir"]:
-            if path_key in processed and processed[path_key]:
-                file_path = Path(processed[path_key]).expanduser()
-                if not file_path.is_absolute():
-                    # Make relative to config file directory
-                    processed[path_key] = str(config_path.parent / file_path)
-                else:
-                    processed[path_key] = str(file_path)
-
         # Handle nested configuration
+        # Extract values from nested gcloud.* and gmail.* settings
+        if "gcloud" in processed and isinstance(processed["gcloud"], dict):
+            if "credential_file" in processed["gcloud"]:
+                processed["credential_file"] = processed["gcloud"]["credential_file"]
+
+        if "gmail" in processed and isinstance(processed["gmail"], dict):
+            if "mailbox_dir" in processed["gmail"]:
+                processed["mailbox_dir"] = processed["gmail"]["mailbox_dir"]
+
         # Extract values from nested mcp.* and http.* settings
         if "mcp" in processed and isinstance(processed["mcp"], dict):
             if "mode" in processed["mcp"]:
@@ -110,6 +109,16 @@ class Loader:
                 processed["port"] = processed["http"]["port"]
             if "addr" in processed["http"]:
                 processed["addr"] = processed["http"]["addr"]
+
+        # Convert relative paths to absolute paths (after flattening)
+        for path_key in ["credential_file", "mailbox_dir"]:
+            if path_key in processed and processed[path_key]:
+                file_path = Path(processed[path_key]).expanduser()
+                if not file_path.is_absolute():
+                    # Make relative to config file directory
+                    processed[path_key] = str(config_path.parent / file_path)
+                else:
+                    processed[path_key] = str(file_path)
 
         return processed
 
@@ -147,17 +156,17 @@ class Loader:
             ValueError: If required parameters are missing or invalid
         """
         # Extract required parameters
-        creds_file = kwargs.get("creds_file")
+        credential_file = kwargs.get("credential_file")
         mailbox_dir = kwargs.get("mailbox_dir")
 
-        if not creds_file:
-            raise ValueError("Missing required parameter: creds_file")
+        if not credential_file:
+            raise ValueError("Missing required parameter: credential_file")
         if not mailbox_dir:
             raise ValueError("Missing required parameter: mailbox_dir")
 
         # Create config with defaults for optional parameters
         return Gmail(
-            creds_file=creds_file,
+            credential_file=credential_file,
             mailbox_dir=mailbox_dir,
             mode=kwargs.get("mode", "http"),
             port=kwargs.get("port", 63417),

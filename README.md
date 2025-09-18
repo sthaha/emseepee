@@ -110,11 +110,17 @@ vim config.yaml
 ```yaml
 # Gmail MCP Server Configuration
 
-# Required: Path to OAuth 2.0 credentials file
-creds_file: ~/.creds/gmail/creds.json
+# Google Cloud credentials configuration
+gcloud:
+  # Required: Path to OAuth 2.0 credentials file
+  # Can be absolute or relative to this config file
+  credential_file: ~/.creds/gmail/creds.json
 
-# Required: Directory containing mailbox subdirectories
-mailbox_dir: ~/.creds/gmail/mailboxes/
+# Gmail configuration
+gmail:
+  # Required: Directory containing mailbox subdirectories
+  # Can be absolute or relative to this config file
+  mailbox_dir: ~/.creds/gmail/mailboxes/
 
 # MCP Server configuration
 mcp:
@@ -138,7 +144,7 @@ emseepee add --name personal --config-file config.yaml
 # Using direct arguments
 emseepee add \
   --name personal \
-  --creds-file ~/.creds/gmail/creds.json \
+  --credential-file ~/.creds/gmail/creds.json \
   --mailbox-dir ~/.creds/gmail/mailboxes/
 ```
 
@@ -188,7 +194,7 @@ emseepee gmail add --name personal --config-file config.yaml
 # Using direct arguments
 emseepee gmail add \
   --name personal \
-  --creds-file ~/.creds/gmail/creds.json \
+  --credential-file ~/.creds/gmail/creds.json \
   --mailbox-dir ~/.creds/gmail/mailboxes/
 
 # Mixing config file with overrides
@@ -202,7 +208,7 @@ emseepee gmail add \
 
 - `--name TEXT`: Mailbox identifier (required)
 - `--config-file PATH`: YAML configuration file
-- `--creds-file PATH`: OAuth 2.0 credentials file (required if not in config)
+- `--credential-file PATH`: OAuth 2.0 credentials file (required if not in config)
 - `--mailbox-dir PATH`: Mailbox directory (required if not in config)
 - `--log-level [DEBUG|INFO|WARNING|ERROR]`: Logging level
 
@@ -223,7 +229,7 @@ emseepee gmail serve \
 
 # Using direct arguments
 emseepee gmail serve \
-  --creds-file ~/.creds/gmail/creds.json \
+  --credential-file ~/.creds/gmail/creds.json \
   --mailbox-dir ~/.creds/gmail/mailboxes/
 
 # Advanced: stdio mode for direct MCP client connections
@@ -236,7 +242,7 @@ emseepee gmail serve \
 **Options:**
 
 - `--config-file PATH`: YAML configuration file
-- `--creds-file PATH`: OAuth 2.0 credentials file (required if not in config)
+- `--credential-file PATH`: OAuth 2.0 credentials file (required if not in config)
 - `--mailbox-dir PATH`: Mailbox directory (required if not in config)
 - `--mode [http|stdio]`: Transport mode (default: http)
 - `--port INTEGER`: Server port (default: 63417)
@@ -447,7 +453,7 @@ python -c "import yaml; yaml.safe_load(open('config.yaml'))"
 
 # Test with direct arguments
 emseepee gmail serve \
-  --creds-file ~/.creds/gmail/creds.json \
+  --credential-file ~/.creds/gmail/creds.json \
   --mailbox-dir ~/.creds/gmail/mailboxes/
 ```
 

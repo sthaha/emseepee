@@ -527,7 +527,9 @@ def gmail():
     "--name", required=True, help="Mailbox name/identifier (e.g., 'personal', 'work')"
 )
 @click.option("--config-file", help="YAML configuration file path")
-@click.option("--creds-file", help="OAuth 2.0 credentials file path (overrides config)")
+@click.option(
+    "--credential-file", help="OAuth 2.0 credentials file path (overrides config)"
+)
 @click.option(
     "--mailbox-dir",
     help="Directory containing mailbox subdirectories (overrides config)",
@@ -541,7 +543,7 @@ def gmail():
 def add(
     name: str,
     config_file: Optional[str],
-    creds_file: Optional[str],
+    credential_file: Optional[str],
     mailbox_dir: Optional[str],
     log_level: str,
 ):
@@ -558,7 +560,7 @@ def add(
         emseepee gmail add --name personal --config-file ~/.gmail-config.yaml
 
         # Using direct arguments
-        emseepee gmail add --name personal --creds-file ~/.creds/gmail/creds.json --mailbox-dir ~/.creds/gmail/mailboxes/
+        emseepee gmail add --name personal --credential-file ~/.creds/gmail/creds.json --mailbox-dir ~/.creds/gmail/mailboxes/
 
         # Mixing config file with overrides
         emseepee gmail add --name personal --config-file ~/.gmail-config.yaml --mailbox-dir /custom/path
@@ -569,7 +571,7 @@ def add(
         # Load and validate configuration
         gmail_config = config.from_file_and_cli(
             config_file=config_file,
-            creds_file=creds_file,
+            credential_file=credential_file,
             mailbox_dir=mailbox_dir,
             log_level=log_level,
         )
@@ -577,7 +579,7 @@ def add(
         from pathlib import Path
 
         # Initialize manager
-        manager = MailboxManager(gmail_config.mailbox_dir, gmail_config.creds_file)
+        manager = MailboxManager(gmail_config.mailbox_dir, gmail_config.credential_file)
 
         # Check if mailbox already exists
         mailbox_path = Path(gmail_config.mailbox_dir) / name
@@ -588,10 +590,10 @@ def add(
 
         logger.info(f"Creating mailbox '{name}'...")
         logger.info(f"Mailbox directory: {mailbox_path}")
-        logger.info(f"Using credentials: {gmail_config.creds_file}")
+        logger.info(f"Using credentials: {gmail_config.credential_file}")
 
         # Add the mailbox (triggers OAuth flow)
-        result = manager.add(name, gmail_config.creds_file)
+        result = manager.add(name, gmail_config.credential_file)
 
         if result["status"] == "success":
             logger.info("✅ Mailbox added successfully!")
@@ -610,7 +612,9 @@ def add(
 
 @gmail.command()
 @click.option("--config-file", help="YAML configuration file path")
-@click.option("--creds-file", help="OAuth 2.0 credentials file path (overrides config)")
+@click.option(
+    "--credential-file", help="OAuth 2.0 credentials file path (overrides config)"
+)
 @click.option(
     "--mailbox-dir",
     help="Directory containing mailbox subdirectories (overrides config)",
@@ -642,7 +646,7 @@ def add(
 )
 def serve(
     config_file: Optional[str],
-    creds_file: Optional[str],
+    credential_file: Optional[str],
     mailbox_dir: Optional[str],
     mode: str,
     port: int,
@@ -663,7 +667,7 @@ def serve(
         emseepee gmail serve --config-file ~/.gmail-config.yaml
 
         # Using direct arguments
-        emseepee gmail serve --creds-file ~/.creds/gmail/creds.json --mailbox-dir ~/.creds/gmail/mailboxes/
+        emseepee gmail serve --credential-file ~/.creds/gmail/creds.json --mailbox-dir ~/.creds/gmail/mailboxes/
 
         # Mixing config file with overrides
         emseepee gmail serve --config-file ~/.gmail-config.yaml --port 8080 --mailbox=work
@@ -677,7 +681,7 @@ def serve(
         # Load and validate configuration
         gmail_config = config.from_file_and_cli(
             config_file=config_file,
-            creds_file=creds_file,
+            credential_file=credential_file,
             mailbox_dir=mailbox_dir,
             mode=(
                 mode if mode != "http" else None
@@ -693,11 +697,11 @@ def serve(
         )
 
         logger.info(f"Discovering mailboxes in: {gmail_config.mailbox_dir}")
-        logger.info(f"Using credentials: {gmail_config.creds_file}")
+        logger.info(f"Using credentials: {gmail_config.credential_file}")
 
         # Use separate discovery function with fail-fast behavior
         _discover_and_validate_mailboxes(
-            gmail_config.creds_file, gmail_config.mailbox_dir, gmail_config.mailbox
+            gmail_config.credential_file, gmail_config.mailbox_dir, gmail_config.mailbox
         )
 
         logger.info("✅ All mailboxes validated successfully")
