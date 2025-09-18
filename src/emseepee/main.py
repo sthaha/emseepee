@@ -756,7 +756,7 @@ def _discover_and_validate_mailboxes(
     if not mailbox_path.exists():
         raise ValueError(
             f"Mailbox directory does not exist: {mailbox_dir}\n"
-            f"Create mailboxes using: emseepee gmail add --name <mailbox-name> --creds-file {creds_file} --mailbox-dir {mailbox_dir}"
+            f"Create mailboxes using: emseepee gmail add --name <mailbox-name> --credential-file {creds_file} --mailbox-dir {mailbox_dir}"
         )
 
     # Initialize manager for discovery
@@ -776,7 +776,7 @@ def _discover_and_validate_mailboxes(
     if not loaded_mailboxes:
         raise ValueError(
             f"No valid mailboxes found in: {mailbox_dir}\n"
-            f"Add mailboxes using: emseepee gmail add --name <mailbox-name> --creds-file {creds_file} --mailbox-dir {mailbox_dir}\n"
+            f"Add mailboxes using: emseepee gmail add --name <mailbox-name> --credential-file {creds_file} --mailbox-dir {mailbox_dir}\n"
             f"Expected directory structure:\n"
             f"  {mailbox_dir}/\n"
             f"    personal/\n"
@@ -791,7 +791,7 @@ def _discover_and_validate_mailboxes(
         raise ValueError(
             f"Requested mailbox '{requested_mailbox}' not found.\n"
             f"Available mailboxes: {', '.join(loaded_mailboxes)}\n"
-            f"Add it using: emseepee gmail add --name {requested_mailbox} --creds-file {creds_file} --mailbox-dir {mailbox_dir}"
+            f"Add it using: emseepee gmail add --name {requested_mailbox} --credential-file {creds_file} --mailbox-dir {mailbox_dir}"
         )
 
     # Initialize the global service with validated mailboxes

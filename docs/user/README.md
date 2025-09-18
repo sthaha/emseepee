@@ -95,11 +95,17 @@ vim config.yaml
 ```yaml
 # Gmail MCP Server Configuration
 
-# Required: Path to OAuth 2.0 credentials file (from Google Cloud Setup)
-creds_file: ~/.creds/gmail/creds.json
+# Google Cloud credentials configuration
+gcloud:
+  # Required: Path to OAuth 2.0 credentials file
+  # Can be absolute or relative to this config file
+  credential_file: ~/.creds/gmail/creds.json
 
-# Required: Directory containing mailbox subdirectories
-mailbox_dir: ~/.creds/gmail/mailboxes/
+# Gmail configuration
+gmail:
+  # Required: Directory containing mailbox subdirectories
+  # Can be absolute or relative to this config file
+  mailbox_dir: ~/.creds/gmail/mailboxes/
 
 # MCP Server configuration
 mcp:
@@ -123,7 +129,7 @@ emseepee gmail add --name personal --config-file config.yaml
 # Using direct arguments
 emseepee gmail add \
   --name personal \
-  --creds-file ~/.creds/gmail/creds.json \
+  --credential-file ~/.creds/gmail/creds.json \
   --mailbox-dir ~/.creds/gmail/mailboxes/
 ```
 
@@ -353,8 +359,8 @@ If you encounter issues:
 
 1. **Server won't start**:
    - Check config file syntax: `python -c "import yaml; yaml.safe_load(open('config.yaml'))"`
-   - Verify required fields: `creds_file` and `mailbox_dir` are present
-   - Try direct arguments: `emseepee gmail serve --creds-file ~/.creds/gmail/creds.json --mailbox-dir ~/.creds/gmail/mailboxes/`
+   - Verify required fields: `gcloud.credential_file` and `gmail.mailbox_dir` are present
+   - Try direct arguments: `emseepee gmail serve --credential-file ~/.creds/gmail/creds.json --mailbox-dir ~/.creds/gmail/mailboxes/`
 
 2. **Mailbox not found**:
    - Use `emseepee gmail add --name <mailbox> --config-file config.yaml` to add mailboxes first

@@ -262,9 +262,9 @@ async def operation(param: str, mailboxes: Optional[List[str]] = None):
 _gmail_service: Optional[GmailService] = None
 _mailbox_manager: Optional[MailboxManager] = None
 
-def initialize_gmail_service_with_mailbox_dir(creds_file: str, mailbox_dir: str, current_mailbox: str):
+def initialize_gmail_service_with_mailbox_dir(credential_file: str, mailbox_dir: str, current_mailbox: str):
     global _gmail_service, _mailbox_manager
-    _mailbox_manager = MailboxManager(mailbox_dir, creds_file)
+    _mailbox_manager = MailboxManager(mailbox_dir, credential_file)
     _mailbox_manager.discover_mailbox_directories()
     _mailbox_manager.switch_mailbox(current_mailbox)
     _gmail_service = _mailbox_manager.get_current_service()

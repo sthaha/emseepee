@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Test script for Gmail MCP HTTP and SSE endpoints
-# Make sure the server is running: uv run gmail --creds-file <path> --tokens-dir <path> --mailbox <mailbox>
+# Make sure the server is running: uv run emseepee gmail --credential-file <path> --mailbox-dir <path> --mailbox <mailbox>
 
 set -euo pipefail
 
@@ -313,7 +313,7 @@ run_tests() {
 			echo "{\"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"tools/list\", \"params\": {}}"
 			sleep 0.5
 			echo "{\"jsonrpc\": \"2.0\", \"id\": 3, \"method\": \"tools/call\", \"params\": {\"name\": \"get_unread_emails\", \"arguments\": {\"max_emails\": 5}}}"
-		) | uv run gmail --mode stdio --creds-file /dev/null --tokens-dir /tmp --mailbox test 2>/dev/null | grep -q "get_unread_emails"
+		) | uv run emseepee gmail --mode stdio --credential-file /dev/null --mailbox-dir /tmp --mailbox test 2>/dev/null | grep -q "get_unread_emails"
 	' 2>/dev/null; then
 		echo "   ✅ Stdio mode: Tools list working"
 	else
@@ -328,7 +328,7 @@ run_tests() {
 			echo "{\"jsonrpc\": \"2.0\", \"method\": \"notifications/initialized\"}"
 			sleep 0.5
 			echo "{\"jsonrpc\": \"2.0\", \"id\": 3, \"method\": \"tools/call\", \"params\": {\"name\": \"get_unread_emails\", \"arguments\": {\"max_emails\": 5}}}"
-		) | uv run gmail --mode stdio --creds-file /dev/null --tokens-dir /tmp --mailbox test 2>/dev/null | grep -q "status"
+		) | uv run emseepee gmail --mode stdio --credential-file /dev/null --mailbox-dir /tmp --mailbox test 2>/dev/null | grep -q "status"
 	' 2>/dev/null; then
 		echo "   ✅ Stdio mode: Tool calling working"
 	else
@@ -343,7 +343,7 @@ run_tests() {
 			echo "{\"jsonrpc\": \"2.0\", \"method\": \"notifications/initialized\"}"
 			sleep 0.5
 			echo "{\"jsonrpc\": \"2.0\", \"id\": 4, \"method\": \"tools/call\", \"params\": {\"name\": \"discover_mailboxes\", \"arguments\": {}}}"
-		) | uv run gmail --mode stdio --creds-file /dev/null --tokens-dir /tmp --mailbox test 2>/dev/null | grep -q "discovered"
+		) | uv run emseepee gmail --mode stdio --credential-file /dev/null --mailbox-dir /tmp --mailbox test 2>/dev/null | grep -q "discovered"
 	' 2>/dev/null; then
 		echo "   ✅ Stdio mode: Discover mailboxes working"
 	else
@@ -358,7 +358,7 @@ run_tests() {
 			echo "{\"jsonrpc\": \"2.0\", \"method\": \"notifications/initialized\"}"
 			sleep 0.5
 			echo "{\"jsonrpc\": \"2.0\", \"id\": 5, \"method\": \"tools/call\", \"params\": {\"name\": \"rename_mailbox\", \"arguments\": {\"old_mailbox_id\": \"test_old\", \"new_mailbox_id\": \"test_new\"}}}"
-		) | uv run gmail --mode stdio --creds-file /dev/null --tokens-dir /tmp --mailbox test 2>/dev/null | grep -q "status"
+		) | uv run emseepee gmail --mode stdio --credential-file /dev/null --mailbox-dir /tmp --mailbox test 2>/dev/null | grep -q "status"
 	' 2>/dev/null; then
 		echo "   ✅ Stdio mode: Rename mailbox working"
 	else
@@ -396,7 +396,7 @@ main() {
 		echo "💡 Gmail MCP Server is working correctly"
 	else
 		echo "❌ $total_failures test(s) failed"
-		echo "💡 Check server logs and ensure: uv run gmail is running with proper credentials"
+		echo "💡 Check server logs and ensure: uv run emseepee gmail is running with proper credentials"
 		exit 1
 	fi
 }
